@@ -180,6 +180,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Mobilier Royal",
     description: "Trône royal du royaume Ashanti, symbole de pouvoir et de prestige.",
     image: "/ashanti-throne-golden-stool.jpg",
+    audioUrl: "/audio/trone-ashanti.mp3",
     videoUrl: "/video/trone-ashanti.mp4",
     qrCode: "MCN-OEU-002",
     expositionId: "1",
@@ -196,6 +197,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Arme Historique",
     description: "Épée cérémonielle utilisée par les empereurs du Mali, symbole de souveraineté.",
     image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop",
+    audioUrl: "/audio/epee-mali.mp3",
     qrCode: "MCN-OEU-003",
     expositionId: "1",
     location: {
@@ -211,6 +213,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Peinture Contemporaine",
     description: "Une œuvre abstraite représentant la renaissance culturelle africaine moderne.",
     image: "/contemporary-african-art-gallery.jpg",
+    audioUrl: "/audio/peinture-abstraite.mp3",
     qrCode: "MCN-OEU-004",
     expositionId: "2",
     location: {
@@ -226,6 +229,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Sculpture Moderne",
     description: "Sculpture en métal explorant les thèmes de l'identité et de la diaspora africaine.",
     image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop",
+    audioUrl: "/audio/sculpture-metal.mp3",
     qrCode: "MCN-OEU-005",
     expositionId: "2",
     location: {
@@ -241,6 +245,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Textile",
     description: "Tissu kente traditionnel du Ghana, symbole de statut social et culturel.",
     image: "/african-traditional-textiles-patterns.jpg",
+    audioUrl: "/audio/tissu-kente.mp3",
     qrCode: "MCN-OEU-006",
     expositionId: "3",
     location: {
@@ -256,6 +261,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Vêtement Traditionnel",
     description: "Robe cérémonielle brodée utilisée lors des cérémonies royales au Nigeria.",
     image: "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=400&h=400&fit=crop",
+    audioUrl: "/audio/robe-yoruba.mp3",
     qrCode: "MCN-OEU-007",
     expositionId: "3",
     location: {
@@ -287,6 +293,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Instrument à Cordes",
     description: "Harpe-luth traditionnelle utilisée par les griots pour raconter l'histoire orale.",
     image: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&h=400&fit=crop",
+    audioUrl: "/audio/kora.mp3",
     qrCode: "MCN-OEU-009",
     expositionId: "4",
     location: {
@@ -302,6 +309,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Sculpture Rituale",
     description: "Statue représentant un ancêtre, utilisée dans les rituels funéraires des Dogons.",
     image: "/african-ancestral-sculptures-wood.jpg",
+    audioUrl: "/audio/statue-dogon.mp3",
     qrCode: "MCN-OEU-010",
     expositionId: "5",
     location: {
@@ -317,6 +325,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Masque Cérémoniel",
     description: "Masque utilisé lors des cérémonies funéraires dans la culture Bamana du Mali.",
     image: "/placeholder.jpg",
+    audioUrl: "/audio/masque-bamana.mp3",
     qrCode: "MCN-OEU-011",
     expositionId: "5",
     location: {
@@ -332,6 +341,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Bijou Royal",
     description: "Collier en or massif porté par les rois Ashanti, symbole de richesse et de pouvoir.",
     image: "/ashanti-throne-golden-stool.jpg",
+    audioUrl: "/audio/collier-or.mp3",
     qrCode: "MCN-OEU-012",
     expositionId: "6",
     location: {
@@ -347,6 +357,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Parure Traditionnelle",
     description: "Bracelets en ivoire sculpté portés par les guerriers Maasai du Kenya.",
     image: "/placeholder.jpg",
+    audioUrl: "/audio/bracelets-ivoire.mp3",
     qrCode: "MCN-OEU-013",
     expositionId: "6",
     location: {
@@ -362,6 +373,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Photographie Artistique",
     description: "Portrait en noir et blanc capturant la beauté et la dignité des femmes africaines.",
     image: "/modern-african-photography-exhibition.jpg",
+    audioUrl: "/audio/portrait-femme.mp3",
     qrCode: "MCN-OEU-014",
     expositionId: "7",
     location: {
@@ -377,6 +389,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Photographie Urbaine",
     description: "Photographie documentaire montrant la vie quotidienne dans les rues de Dakar.",
     image: "/placeholder.jpg",
+    audioUrl: "/audio/rue-dakar.mp3",
     qrCode: "MCN-OEU-015",
     expositionId: "7",
     location: {
@@ -392,6 +405,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Céramique Ancienne",
     description: "Pot traditionnel en terre cuite utilisé pour le stockage dans les communautés berbères.",
     image: "/african-ancient-pottery-ceramics.jpg",
+    audioUrl: "/audio/pot-terre.mp3",
     qrCode: "MCN-OEU-016",
     expositionId: "8",
     location: {
@@ -407,6 +421,7 @@ export const oeuvres: Oeuvre[] = [
     type: "Céramique Ornementale",
     description: "Vase décoré de motifs géométriques de la civilisation nubienne ancienne.",
     image: "/placeholder.jpg",
+    audioUrl: "/audio/vase-nubien.mp3",
     qrCode: "MCN-OEU-017",
     expositionId: "8",
     location: {

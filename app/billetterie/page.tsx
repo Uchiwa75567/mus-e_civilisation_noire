@@ -12,10 +12,11 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Check, CalendarIcon, Users, Clock, Info } from "lucide-react"
+import { Check, CalendarIcon, Users, Clock, Info, Download, Mail } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { QRCodeDisplay } from "@/components/qr-code-display"
 
 const ticketTypes = [
   { id: "adulte", label: "Adulte", price: 5000, description: "À partir de 18 ans" },
@@ -23,6 +24,9 @@ const ticketTypes = [
   { id: "enfant", label: "Enfant", price: 1000, description: "6-17 ans" },
   { id: "gratuit", label: "Gratuit", price: 0, description: "Moins de 6 ans" },
 ]
+
+// Simulated valid reservations storage
+const validReservations = new Set<string>()
 
 export default function BilletteriePage() {
   const [step, setStep] = useState(1)
@@ -41,10 +45,15 @@ export default function BilletteriePage() {
   const totalPrice = selectedTicket ? selectedTicket.price * quantity : 0
 
   const [paymentMethod, setPaymentMethod] = useState("orange-money")
-  const [qrCodeSent, setQrCodeSent] = useState(false)
+  const [reservationId, setReservationId] = useState<string>("")
+  const [qrCodeData, setQrCodeData] = useState<string>("")
 
   // Simulated bookings storage: { "YYYY-MM-DD HH:mm": number_of_visitors }
   const [bookings, setBookings] = useState<{ [key: string]: number }>({})
+
+  const generateReservationId = () => {
+    return `MCN-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,20 +72,66 @@ export default function BilletteriePage() {
       ...prev,
       [bookingKey]: currentVisitors + quantity,
     }))
+
+    // Generate reservation ID and QR code data
+    const newReservationId = generateReservationId()
+    setReservationId(newReservationId)
+
+    // Create QR code data with reservation details
+    const qrData = JSON.stringify({
+      id: newReservationId,
+      nom: formData.nom,
+      prenom: formData.prenom,
+      email: formData.email,
+      date: date.toISOString().slice(0, 10),
+      heure: timeSlot,
+      type: selectedTicket?.label,
+      quantite: quantity,
+      total: totalPrice,
+      valide: true
+    })
+    setQrCodeData(qrData)
+
+    // Add to valid reservations
+    validReservations.add(newReservationId)
+
+    // Send confirmation email
+    try {
+      const emailResponse = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          nom: formData.nom,
+          prenom: formData.prenom,
+          reservationId: newReservationId,
+          date: date.toISOString().slice(0, 10),
+          heure: timeSlot,
+          type: selectedTicket?.label,
+          quantite: quantity,
+          total: totalPrice,
+          qrCodeData: qrData
+        }),
+      })
+
+      if (!emailResponse.ok) {
+        console.warn("L'email n'a pas pu être envoyé, mais la réservation est confirmée.")
+      }
+    } catch (error) {
+      console.warn("Erreur lors de l'envoi de l'email:", error)
+    }
+
     // Simulate payment processing
     setTimeout(() => {
       setStep(4)
-      sendQrCodeEmail()
     }, 1500)
   }
 
-  // Simulate sending QR code email
-  const sendQrCodeEmail = () => {
-    // Simulate email sending delay
-    setTimeout(() => {
-      setQrCodeSent(true)
-      alert(`Un code QR a été envoyé à ${formData.email} via ${paymentMethod}. (Simulation)`)
-    }, 1000)
+  const downloadQRCode = () => {
+    // In a real app, this would download the QR code as an image
+    alert("Téléchargement du QR code simulé. Dans une vraie application, cela téléchargerait l'image du QR code.")
   }
 
   return (
@@ -118,8 +173,8 @@ export default function BilletteriePage() {
             {/* Progress Steps */}
             <div className="flex items-center justify-center mb-12">
               <div className="flex items-center gap-4">
-                {[1, 2, 3].map((s) => (
-                  <div key={s} className="flex items-center gap-4">
+                {[1, 2, 3, 4].map((s) => (
+                  <div key={s} className="flex items-center space-x-4">
                     <div
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors",
@@ -128,7 +183,7 @@ export default function BilletteriePage() {
                     >
                       {step > s ? <Check size={20} /> : s}
                     </div>
-                    {s < 3 && <div className={cn("w-16 h-1", step > s ? "bg-primary" : "bg-muted")} />}
+                    {s < 4 && <div className={cn("w-16 h-1", step > s ? "bg-primary" : "bg-muted")} />}
                   </div>
                 ))}
               </div>
@@ -145,52 +200,51 @@ export default function BilletteriePage() {
                 <CardContent className="space-y-6">
                   {/* Date Selection */}
                   <div className="space-y-2">
-                  <Label>Date de visite</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP", { locale: fr }) : "Sélectionner une date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        disabled={(date) => date < new Date() || date.getDay() === 1}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Info size={14} />
-                    Le musée est fermé le lundi
-                  </p>
-                </div>
+                    <Label>Date de visite</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? format(date, "PPP", { locale: fr }) : <span>Choisissez une date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-                {/* Time Slot Selection */}
-                <div className="space-y-2">
-                  <Label>Heure de visite</Label>
-                  <RadioGroup value={timeSlot} onValueChange={setTimeSlot} className="flex flex-wrap gap-4">
-                    {["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"].map((slot) => {
-                      const bookingKey = date ? `${date.toISOString().slice(0, 10)} ${slot}` : ""
-                      const currentVisitors = bookings[bookingKey] || 0
-                      const isFull = currentVisitors + quantity > 100
-                      return (
-                        <div key={slot} className="flex items-center space-x-2">
-                          <RadioGroupItem value={slot} id={slot} disabled={isFull} />
-                          <Label htmlFor={slot} className={isFull ? "text-red-600 cursor-not-allowed" : "cursor-pointer"}>
-                            {slot} {isFull && "(Complet)"}
-                          </Label>
-                        </div>
-                      )
-                    })}
-                  </RadioGroup>
-                </div>
+                  {/* Time Slot Selection */}
+                  <div className="space-y-2">
+                    <Label>Heure de visite</Label>
+                    <RadioGroup value={timeSlot} onValueChange={setTimeSlot} className="flex flex-wrap gap-4">
+                      {["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"].map((slot) => {
+                        const bookingKey = date ? `${date.toISOString().slice(0, 10)} ${slot}` : ""
+                        const currentVisitors = bookings[bookingKey] || 0
+                        const isFull = currentVisitors + quantity > 100
+                        return (
+                          <div key={slot} className="flex items-center space-x-2">
+                            <RadioGroupItem value={slot} id={slot} disabled={isFull} />
+                            <Label htmlFor={slot} className={isFull ? "text-red-600 cursor-not-allowed" : "cursor-pointer"}>
+                              {slot} {isFull && "(Complet)"}
+                            </Label>
+                          </div>
+                        )
+                      })}
+                    </RadioGroup>
+                  </div>
 
                   {/* Ticket Type */}
                   <div className="space-y-2">
@@ -380,7 +434,7 @@ export default function BilletteriePage() {
                 </div>
               </div>
             </div>
-  
+
             {/* Payment Method Selection */}
             <div className="space-y-4">
               <Label>Méthode de paiement</Label>
@@ -393,14 +447,14 @@ export default function BilletteriePage() {
                 <Label htmlFor="carte-bancaire" className="cursor-pointer">Carte Bancaire</Label>
               </RadioGroup>
             </div>
-  
+
             <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
               <p className="text-sm text-blue-900 dark:text-blue-100">
                 <Info className="inline mr-2" size={16} />
                 Le paiement est sécurisé. Vous recevrez votre billet par email après confirmation du paiement.
               </p>
             </div>
-  
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex gap-4">
                 <Button
@@ -435,7 +489,7 @@ export default function BilletteriePage() {
                   <div className="bg-muted p-6 rounded-lg">
                     <p className="text-sm text-muted-foreground mb-4">Numéro de réservation</p>
                     <p className="text-2xl font-bold font-mono">
-                      MCN-{Math.random().toString(36).substr(2, 9).toUpperCase()}
+                      {reservationId}
                     </p>
                   </div>
 

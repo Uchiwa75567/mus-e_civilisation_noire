@@ -35,10 +35,23 @@
 - [x] Add charts or visual representations
 - [x] Make stats accessible from header or admin page
 
-## 6. Testing and Validation
-- [ ] Test all new oeuvres pages
-- [ ] Verify QR code links work
-- [ ] Check stats accuracy
-- [ ] Ensure no console errors
-- [ ] Test on different screen sizes
-- [ ] Final validation before delivery
+## 6. Email Notifications
+- [x] Add email confirmation system for ticket bookings
+- [x] Create /api/send-email endpoint with nodemailer
+- [x] Integrate email sending in billetterie payment flow
+- [x] Create professional HTML email template
+- [x] Add environment variables configuration (.env.example)
+
+## 7. Audio Guides for Artworks
+- [x] Add audioUrl field to all oeuvres in lib/data.ts
+- [x] Create audio files structure in public/audio/
+- [x] Ensure audio player displays on oeuvre detail pages
+- [x] Add 17 unique audio guide files for each artwork
+
+## 8. Testing and Validation
+- [x] Test all new oeuvres pages
+- [x] Verify QR code links work
+- [x] Check stats accuracy
+- [x] Ensure no console errors
+- [x] Test on different screen sizes
+- [x] Final validation before delivery

@@ -98,7 +98,7 @@ export default function OeuvreDetailPage() {
                     />
                   </div>
                   <Card className="bg-muted/50">
-                    <CardContent className="p-4 flex items-center justify-between">
+                    <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <QrCode className="h-5 w-5 text-primary" />
                         <div>
@@ -106,7 +106,7 @@ export default function OeuvreDetailPage() {
                           <p className="text-xs text-muted-foreground">{oeuvre.qrCode}</p>
                         </div>
                       </div>
-                      <div className="w-16 h-16 bg-white rounded flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white rounded flex items-center justify-center self-end sm:self-auto">
                         <img
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=${encodeURIComponent(`${window.location.origin}/oeuvres/${oeuvre.id}`)}`}
                           alt="QR Code"

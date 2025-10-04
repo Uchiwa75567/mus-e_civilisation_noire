@@ -5,6 +5,8 @@ import { ExpositionsSection } from "@/components/expositions-section"
 import { EvenementsSection } from "@/components/evenements-section"
 import { AboutSection } from "@/components/about-section"
 import { ContactSection } from "@/components/contact-section"
+import { VirtualTourSection } from "@/components/virtual-tour-section"
+import { StatsSection } from "@/components/stats-section"
 
 export default function HomePage() {
   return (
@@ -13,7 +15,9 @@ export default function HomePage() {
       <main className="pt-16">
         <HeroSection />
         <ExpositionsSection />
+        <VirtualTourSection />
         <EvenementsSection />
+        <StatsSection />
         <AboutSection />
         <ContactSection />
       </main>
