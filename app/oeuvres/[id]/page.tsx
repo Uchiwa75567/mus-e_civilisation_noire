@@ -7,17 +7,30 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import type { Oeuvre, Exposition } from "@/lib/types"
 import { ArrowLeft, Calendar, MapPin, Palette, Volume2, Video, QrCode } from "lucide-react"
 import { oeuvres } from "@/lib/data"
 import { MuseumMap } from "@/components/museum-map"
+import { MiniMap } from "@/app/visite-virtuelle/components/UI/MiniMap"
+import { QRCodeDisplay } from "@/components/qr-code-display"
+import { Spinner } from "@/components/ui/spinner"
+
+const languageOptions = [
+  { code: 'fr' as const, label: 'Français', flag: '🇫🇷' },
+  { code: 'en' as const, label: 'English', flag: '🇺🇸' },
+  { code: 'wo' as const, label: 'Wolof', flag: '🇸🇳' },
+]
 
 export default function OeuvreDetailPage() {
   const params = useParams()
   const [oeuvre, setOeuvre] = useState<Oeuvre | null>(null)
   const [exposition, setExposition] = useState<Exposition | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedLanguage, setSelectedLanguage] = useState<'fr' | 'en' | 'wo'>('fr')
+  const [showMiniMap, setShowMiniMap] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -43,7 +56,9 @@ export default function OeuvreDetailPage() {
       <div className="min-h-screen">
         <Header />
         <main className="pt-16">
-          <div className="container mx-auto px-4 lg:px-8 py-20 text-center">Chargement...</div>
+          <div className="container mx-auto px-4 lg:px-8 py-20 flex items-center justify-center">
+            <Spinner className="h-10 w-10" />
+          </div>
         </main>
         <Footer />
       </div>
@@ -67,18 +82,23 @@ export default function OeuvreDetailPage() {
     )
   }
 
+  const currentAudioUrl = oeuvre.audioUrls?.[selectedLanguage]
+
   return (
     <div className="min-h-screen">
       <Header />
       <main className="pt-16">
         {/* Breadcrumb */}
         <section className="py-6 border-b border-border">
-          <div className="container mx-auto px-4 lg:px-8">
+          <div className="container mx-auto px-4 lg:px-8 flex justify-between items-center">
             <Button asChild variant="ghost" size="sm">
               <Link href={exposition ? `/expositions/${exposition.id}` : "/"}>
                 <ArrowLeft className="mr-2" size={16} />
                 {exposition ? `Retour à ${exposition.titre}` : "Retour"}
               </Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowMiniMap(true)}>
+              Voir la position dans le musée
             </Button>
           </div>
         </section>
@@ -106,11 +126,11 @@ export default function OeuvreDetailPage() {
                           <p className="text-xs text-muted-foreground">{oeuvre.qrCode}</p>
                         </div>
                       </div>
-                      <div className="w-16 h-16 bg-white rounded flex items-center justify-center self-end sm:self-auto">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=${encodeURIComponent(`${window.location.origin}/oeuvres/${oeuvre.id}`)}`}
-                          alt="QR Code"
-                          className="w-full h-full"
+                      <div className="w-16 h-16 self-end sm:self-auto">
+                        <QRCodeDisplay
+                          data={`${typeof window !== 'undefined' ? window.location.origin : ''}/oeuvres/${oeuvre.id}`}
+                          size={64}
+                          className="w-16 h-16"
                         />
                       </div>
                     </CardContent>
@@ -135,24 +155,49 @@ export default function OeuvreDetailPage() {
                   <p className="text-muted-foreground leading-relaxed">{oeuvre.description}</p>
                 </div>
 
-                {(oeuvre.audioUrl || oeuvre.videoUrl) && (
+                {(oeuvre.audioUrls || oeuvre.videoUrl) && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Contenu multimédia</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      {oeuvre.audioUrl && (
-                        <div className="space-y-2">
-                          <Button variant="outline" className="w-full bg-transparent justify-start" asChild>
-                            <a href={oeuvre.audioUrl} target="_blank" rel="noopener noreferrer">
-                              <Volume2 className="mr-2 h-4 w-4" />
-                              Écouter le guide audio
-                            </a>
-                          </Button>
-                          <audio controls className="w-full">
-                            <source src={oeuvre.audioUrl} type="audio/mpeg" />
-                            Votre navigateur ne supporte pas l'élément audio.
-                          </audio>
+                    <CardContent className="space-y-4">
+                      {oeuvre.audioUrls && (
+                        <div className="space-y-4">
+                          {/* Language Selector */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Choisir la langue du guide audio</Label>
+                            <RadioGroup
+                              value={selectedLanguage}
+                              onValueChange={(value) => setSelectedLanguage(value as 'fr' | 'en' | 'wo')}
+                              className="flex gap-4"
+                            >
+                              {languageOptions.map((lang) => (
+                                <div key={lang.code} className="flex items-center space-x-2">
+                                  <RadioGroupItem value={lang.code} id={lang.code} />
+                                  <Label htmlFor={lang.code} className="flex items-center gap-2 cursor-pointer">
+                                    <span className="text-lg">{lang.flag}</span>
+                                    {lang.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </div>
+
+                          {/* Audio Player */}
+                          {currentAudioUrl && (
+                            <div className="space-y-2">
+                              <Button variant="outline" className="w-full bg-transparent justify-start" asChild>
+                                <a href={currentAudioUrl} target="_blank" rel="noopener noreferrer">
+                                  <Volume2 className="mr-2 h-4 w-4" />
+                                  Télécharger le guide audio ({languageOptions.find(l => l.code === selectedLanguage)?.label})
+                                </a>
+                              </Button>
+                              <audio controls className="w-full" key={selectedLanguage}>
+                                <source src={currentAudioUrl} type="audio/mpeg" />
+                                Votre navigateur ne supporte pas l'élément audio.
+                              </audio>
+                            </div>
+                          )}
                         </div>
                       )}
                       {oeuvre.videoUrl && (
@@ -235,6 +280,10 @@ export default function OeuvreDetailPage() {
         </section>
       </main>
       <Footer />
+
+      {showMiniMap && oeuvre && (
+        <MiniMap onClose={() => setShowMiniMap(false)} currentOeuvre={oeuvre.titre} />
+      )}
     </div>
   )
 }

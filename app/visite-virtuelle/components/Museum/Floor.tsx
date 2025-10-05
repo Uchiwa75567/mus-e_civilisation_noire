@@ -3,7 +3,11 @@
 import { useRef, useMemo } from "react"
 import * as THREE from "three"
 
-export function Floor() {
+interface FloorProps {
+  yPosition?: number
+}
+
+export function Floor({ yPosition = 0 }: FloorProps) {
   const meshRef = useRef<THREE.Mesh>(null)
 
   // Texture procédurale pour le sol
@@ -48,7 +52,7 @@ export function Floor() {
     <mesh 
       ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]} 
-      position={[0, 0, 0]} 
+      position={[0, yPosition, 0]} 
       receiveShadow
     >
       <planeGeometry args={[60, 60]} />

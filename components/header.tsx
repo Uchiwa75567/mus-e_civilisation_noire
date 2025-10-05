@@ -48,7 +48,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-2xl font-bold font-[family-name:var(--font-playfair)]">MCN</div>
+            <img src="/placeholder-logo.png" alt="Musée des Civilisations Noires - Logo" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -68,18 +68,10 @@ export function Header() {
             <Link href="/#a-propos" className={`text-sm hover:text-primary transition-colors ${getActiveLink('/#a-propos') ? 'underline underline-offset-4' : ''}`}>
               À propos
             </Link>
-            <Link href="/stats" className={`text-sm hover:text-primary transition-colors ${getActiveLink('/stats') ? 'underline underline-offset-4' : ''}`}>
-              Statistiques
-            </Link>
-            <Link href="/#contact" className={`text-sm hover:text-primary transition-colors ${getActiveLink('/#contact') ? 'underline underline-offset-4' : ''}`}>
+                        <Link href="/#contact" className={`text-sm hover:text-primary transition-colors ${getActiveLink('/#contact') ? 'underline underline-offset-4' : ''}`}>
               Contact
             </Link>
-            <Button asChild variant="ghost" size="icon">
-              <Link href="/scanner" aria-label="Scanner QR Code">
-                <QrCode className="h-5 w-5" />
-              </Link>
-            </Button>
-            <ThemeToggle />
+                        <ThemeToggle />
             <Button asChild size="sm">
               <Link href="/billetterie">Réserver</Link>
             </Button>
@@ -130,14 +122,7 @@ export function Header() {
               >
                 À propos
               </Link>
-              <Link
-                href="/stats"
-                className={`text-sm hover:text-primary transition-colors ${getActiveLink('/stats') ? 'underline underline-offset-4' : ''}`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Statistiques
-              </Link>
-              <Link
+                            <Link
                 href="/#contact"
                 className={`text-sm hover:text-primary transition-colors ${getActiveLink('/#contact') ? 'underline underline-offset-4' : ''}`}
                 onClick={() => setMobileMenuOpen(false)}

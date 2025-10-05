@@ -37,7 +37,11 @@ export interface Oeuvre {
   type: string
   description: string
   image: string
-  audioUrl?: string
+  audioUrls?: {
+    fr: string
+    en: string
+    wo: string
+  }
   videoUrl?: string
   qrCode: string
   expositionId: string

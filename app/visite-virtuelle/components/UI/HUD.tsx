@@ -9,6 +9,7 @@ export function HUD() {
   const [showSettings, setShowSettings] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [currentFloor, setCurrentFloor] = useState(0)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -16,8 +17,22 @@ export function HUD() {
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    
+    // Écouter les changements d'étage
+    const handleFloorChange = (e: CustomEvent) => {
+      setCurrentFloor(e.detail.floor)
+    }
+    window.addEventListener('floor-changed', handleFloorChange as EventListener)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      window.removeEventListener('floor-changed', handleFloorChange as EventListener)
+    }
   }, [])
+
+  const changeFloor = (floor: number) => {
+    window.dispatchEvent(new CustomEvent('change-floor', { detail: { floor } }))
+  }
 
   const handleMobileMove = (forward: number, right: number) => {
     window.dispatchEvent(new CustomEvent('mobile-move', { detail: { forward, right } }))
@@ -59,6 +74,26 @@ export function HUD() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
+        </div>
+      </div>
+
+      {/* Sélecteur d'étage */}
+      <div className="absolute top-24 right-6 bg-gradient-to-br from-black/80 to-black/60 backdrop-blur-md text-white p-4 rounded-xl border border-amber-600/30 pointer-events-auto shadow-2xl">
+        <h3 className="text-sm font-bold mb-2 text-amber-400">🏢 Étage</h3>
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2].map((floor) => (
+            <button
+              key={floor}
+              onClick={() => changeFloor(floor)}
+              className={`px-4 py-2 rounded-lg transition-all text-sm font-medium ${
+                currentFloor === floor
+                  ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white'
+                  : 'bg-white/10 hover:bg-white/20 text-gray-300'
+              }`}
+            >
+              {floor === 0 ? 'RDC' : `Étage ${floor}`}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -108,7 +143,11 @@ export function HUD() {
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-amber-400">Œuvres:</span>
-            <span id="visited" className="text-purple-400 font-bold">0/12</span>
+            <span id="visited" className="text-purple-400 font-bold">0/17</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-amber-400">Étage:</span>
+            <span className="text-cyan-400 font-bold">{currentFloor === 0 ? 'RDC' : currentFloor}</span>
           </div>
         </div>
       </div>

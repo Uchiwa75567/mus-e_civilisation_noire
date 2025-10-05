@@ -14,6 +14,7 @@ interface PaintingProps {
   year: string
   imageUrl: string
   imageAttribution: string
+  oeuvreId?: string
 }
 
 export function Painting({ 
@@ -24,7 +25,8 @@ export function Painting({
   description, 
   year,
   imageUrl,
-  imageAttribution
+  imageAttribution,
+  oeuvreId
 }: PaintingProps) {
   const groupRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
@@ -159,9 +161,16 @@ export function Painting({
             </p>
 
             <div className="flex gap-2">
-              <button className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 px-4 py-2 rounded-lg transition-all transform hover:scale-105 text-sm font-medium">
-                🔊 Audio guide
-              </button>
+              {oeuvreId && (
+                <a
+                  href={`/oeuvres/${oeuvreId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 px-4 py-2 rounded-lg transition-all transform hover:scale-105 text-sm font-medium text-center"
+                >
+                  📖 Voir détails
+                </a>
+              )}
               <button className="flex-1 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all text-sm font-medium">
                 📷 Partager
               </button>

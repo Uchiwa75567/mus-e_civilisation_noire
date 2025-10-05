@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +17,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { QRCodeDisplay } from "@/components/qr-code-display"
+import { EmailConfigHelp } from "@/components/email-config-help"
 
 const ticketTypes = [
   { id: "adulte", label: "Adulte", price: 5000, description: "À partir de 18 ans" },
@@ -25,8 +26,6 @@ const ticketTypes = [
   { id: "gratuit", label: "Gratuit", price: 0, description: "Moins de 6 ans" },
 ]
 
-// Simulated valid reservations storage
-const validReservations = new Set<string>()
 
 export default function BilletteriePage() {
   const [step, setStep] = useState(1)
@@ -47,9 +46,31 @@ export default function BilletteriePage() {
   const [paymentMethod, setPaymentMethod] = useState("orange-money")
   const [reservationId, setReservationId] = useState<string>("")
   const [qrCodeData, setQrCodeData] = useState<string>("")
+  const [emailError, setEmailError] = useState<string>("")
+  const [showEmailHelp, setShowEmailHelp] = useState(false)
 
-  // Simulated bookings storage: { "YYYY-MM-DD HH:mm": number_of_visitors }
-  const [bookings, setBookings] = useState<{ [key: string]: number }>({})
+  // Availability from server
+  const [availability, setAvailability] = useState<{
+    closed: boolean;
+    slots: Record<string, { capacity: number; reserved: number; available: number }>
+  } | null>(null)
+  const [loadingAvailability, setLoadingAvailability] = useState(false)
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!date) return
+    const d = date.toISOString().slice(0, 10)
+    setLoadingAvailability(true)
+    setAvailabilityError(null)
+    fetch(`/api/reservations/availability?date=${d}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Erreur"))))
+      .then((data) => setAvailability(data))
+      .catch(() => setAvailabilityError("Impossible de charger les disponibilités"))
+      .finally(() => setLoadingAvailability(false))
+  }, [date])
+
+  
 
   const generateReservationId = () => {
     return `MCN-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
@@ -61,72 +82,80 @@ export default function BilletteriePage() {
       alert("Veuillez sélectionner une date.")
       return
     }
-    const bookingKey = `${date.toISOString().slice(0, 10)} ${timeSlot}`
-    const currentVisitors = bookings[bookingKey] || 0
-    if (currentVisitors + quantity > 100) {
-      alert("Désolé, ce créneau horaire est complet. Veuillez choisir un autre horaire.")
+    if (availability?.closed) {
+      alert("Le musée est fermé ce jour-là.")
       return
     }
-    // Update bookings
-    setBookings((prev) => ({
-      ...prev,
-      [bookingKey]: currentVisitors + quantity,
-    }))
-
-    // Generate reservation ID and QR code data
-    const newReservationId = generateReservationId()
-    setReservationId(newReservationId)
-
-    // Create QR code data with reservation details
-    const qrData = JSON.stringify({
-      id: newReservationId,
+    setSubmitting(true)
+    const payload = {
       nom: formData.nom,
       prenom: formData.prenom,
       email: formData.email,
+      telephone: formData.telephone,
       date: date.toISOString().slice(0, 10),
       heure: timeSlot,
-      type: selectedTicket?.label,
+      type: selectedTicket?.label || "",
       quantite: quantity,
       total: totalPrice,
-      valide: true
-    })
-    setQrCodeData(qrData)
-
-    // Add to valid reservations
-    validReservations.add(newReservationId)
-
-    // Send confirmation email
-    try {
-      const emailResponse = await fetch("/api/send-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          nom: formData.nom,
-          prenom: formData.prenom,
-          reservationId: newReservationId,
-          date: date.toISOString().slice(0, 10),
-          heure: timeSlot,
-          type: selectedTicket?.label,
-          quantite: quantity,
-          total: totalPrice,
-          qrCodeData: qrData
-        }),
-      })
-
-      if (!emailResponse.ok) {
-        console.warn("L'email n'a pas pu être envoyé, mais la réservation est confirmée.")
-      }
-    } catch (error) {
-      console.warn("Erreur lors de l'envoi de l'email:", error)
     }
 
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        alert(j?.message || "Réservation impossible pour ce créneau.")
+        return
+      }
+
+      const data = await res.json()
+      const reservation = data.reservation as { id: string }
+      setReservationId(reservation.id)
+
+      const qrData = JSON.stringify({
+        id: reservation.id,
+        nom: formData.nom,
+        prenom: formData.prenom,
+        email: formData.email,
+        date: payload.date,
+        heure: payload.heure,
+        type: payload.type,
+        quantite: payload.quantite,
+        total: payload.total,
+        valide: true,
+      })
+      setQrCodeData(qrData)
+
+      // Send confirmation email (best-effort)
+      try {
+        await fetch("/api/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            nom: formData.nom,
+            prenom: formData.prenom,
+            reservationId: reservation.id,
+            date: payload.date,
+            heure: payload.heure,
+            type: payload.type,
+            quantite: payload.quantite,
+            total: payload.total,
+            qrCodeData: qrData,
+          }),
+        })
+      } catch {}
+
       setStep(4)
-    }, 1500)
+    } catch (err) {
+      alert("Erreur lors de la réservation. Veuillez réessayer.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const downloadQRCode = () => {
@@ -219,7 +248,7 @@ export default function BilletteriePage() {
                           mode="single"
                           selected={date}
                           onSelect={setDate}
-                          disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                          disabled={(d) => d < new Date(new Date().toDateString()) || d.getDay() === 1}
                           initialFocus
                         />
                       </PopoverContent>
@@ -231,14 +260,14 @@ export default function BilletteriePage() {
                     <Label>Heure de visite</Label>
                     <RadioGroup value={timeSlot} onValueChange={setTimeSlot} className="flex flex-wrap gap-4">
                       {["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"].map((slot) => {
-                        const bookingKey = date ? `${date.toISOString().slice(0, 10)} ${slot}` : ""
-                        const currentVisitors = bookings[bookingKey] || 0
-                        const isFull = currentVisitors + quantity > 100
+                        const slotInfo = availability?.slots?.[slot]
+                        const isFull = !!(availability?.closed || (slotInfo && slotInfo.available < quantity))
+                        const disabled = isFull || loadingAvailability || !availability
                         return (
                           <div key={slot} className="flex items-center space-x-2">
-                            <RadioGroupItem value={slot} id={slot} disabled={isFull} />
-                            <Label htmlFor={slot} className={isFull ? "text-red-600 cursor-not-allowed" : "cursor-pointer"}>
-                              {slot} {isFull && "(Complet)"}
+                            <RadioGroupItem value={slot} id={slot} disabled={disabled} />
+                            <Label htmlFor={slot} className={disabled ? "text-red-600 cursor-not-allowed" : "cursor-pointer"}>
+                              {slot} {availability?.closed ? "(Fermé)" : (slotInfo ? (slotInfo.available < quantity ? "(Complet)" : `(${slotInfo.available} restants)`) : "")}
                             </Label>
                           </div>
                         )
@@ -465,8 +494,8 @@ export default function BilletteriePage() {
                 >
                   Retour
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Payer {totalPrice.toLocaleString("fr-FR")} FCFA
+                <Button type="submit" className="flex-1" disabled={submitting}>
+                  {submitting ? "Traitement..." : `Payer ${totalPrice.toLocaleString("fr-FR")} FCFA`}
                 </Button>
               </div>
             </form>
@@ -475,35 +504,51 @@ export default function BilletteriePage() {
       )}
 
             {step === 4 && (
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center mb-4">
-                    <Check className="text-green-600 dark:text-green-400" size={32} />
+              <>
+                {showEmailHelp && (
+                  <div className="mb-6">
+                    <EmailConfigHelp 
+                      error={emailError} 
+                      onClose={() => setShowEmailHelp(false)}
+                    />
                   </div>
-                  <CardTitle className="text-2xl font-[family-name:var(--font-playfair)]">
-                    Réservation confirmée!
-                  </CardTitle>
-                  <CardDescription>Votre billet a été envoyé à {formData.email}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="bg-muted p-6 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-4">Numéro de réservation</p>
-                    <p className="text-2xl font-bold font-mono">
-                      {reservationId}
-                    </p>
-                  </div>
+                )}
+                
+                <Card className="text-center">
+                  <CardHeader>
+                    <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center mb-4">
+                      <Check className="text-green-600 dark:text-green-400" size={32} />
+                    </div>
+                    <CardTitle className="text-2xl font-[family-name:var(--font-playfair)]">
+                      Réservation confirmée!
+                    </CardTitle>
+                    <CardDescription>
+                      {emailError 
+                        ? "Votre réservation est confirmée (email non envoyé)"
+                        : `Votre billet a été envoyé à ${formData.email}`
+                      }
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="bg-muted p-6 rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-4">Numéro de réservation</p>
+                      <p className="text-2xl font-bold font-mono">
+                        {reservationId}
+                      </p>
+                    </div>
 
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <p>• Présentez votre billet (imprimé ou sur mobile) à l'entrée</p>
-                    <p>• Arrivez 15 minutes avant l'heure de votre visite</p>
-                    <p>• Le musée ouvre à 9h00 et ferme à 18h00</p>
-                  </div>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>• Présentez votre billet (imprimé ou sur mobile) à l'entrée</p>
+                      <p>• Arrivez 15 minutes avant l'heure de votre visite</p>
+                      <p>• Le musée ouvre à 9h00 et ferme à 18h00</p>
+                    </div>
 
-                  <Button className="w-full" onClick={() => (window.location.href = "/")}>
-                    Retour à l'accueil
-                  </Button>
-                </CardContent>
-              </Card>
+                    <Button className="w-full" onClick={() => (window.location.href = "/")}>
+                      Retour à l'accueil
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
             )}
           </div>
         </section>

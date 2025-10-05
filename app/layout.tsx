@@ -28,7 +28,15 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${playfair.variable} antialiased`}>
         <ThemeProvider defaultTheme="system" storageKey="mcn-theme">
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+            </div>
+          }>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {children}
+            </div>
+          </Suspense>
           <Analytics />
         </ThemeProvider>
       </body>

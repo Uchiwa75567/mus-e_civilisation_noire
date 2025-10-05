@@ -1,13 +1,13 @@
 "use client"
 
-import { useRef } from "react"
-import { Floor } from "./Museum/Floor"
-import { Walls } from "./Museum/Walls"
-import { Ceiling } from "./Museum/Ceiling"
+import { useState, useEffect } from "react"
+import { MultiFloor } from "./Museum/MultiFloor"
 import { Lighting } from "./Museum/Lighting"
 import { Painting } from "./Artworks/Painting"
+import { Stairs } from "./Museum/Stairs"
 import { CameraController } from "./CameraController"
-import { Fog } from "three"
+import { oeuvres } from "@/lib/data"
+import type { Oeuvre } from "@/lib/types"
 
 interface SceneProps {
   sensitivity: number
@@ -16,160 +16,155 @@ interface SceneProps {
   shadowsEnabled: boolean
 }
 
+// Organiser les œuvres par étage
+function organizeArtworksByFloor(artworks: Oeuvre[]) {
+  return {
+    floor0: artworks.slice(0, 6),   // Œuvres 1-6: Rez-de-chaussée
+    floor1: artworks.slice(6, 12),  // Œuvres 7-12: 1er étage
+    floor2: artworks.slice(12, 17)  // Œuvres 13-17: 2ème étage
+  }
+}
+
+// Calculer les positions pour les œuvres
+function calculateArtworkPositions(artworks: Oeuvre[], floorNumber: number) {
+  const floorHeight = floorNumber * 12
+  const positions: Array<{
+    oeuvre: Oeuvre
+    pos: [number, number, number]
+    rot: [number, number, number]
+  }> = []
+
+  // Mur Nord (z = -29.7)
+  const northWall = artworks.slice(0, Math.min(3, artworks.length))
+  northWall.forEach((oeuvre, i) => {
+    const spacing = 10
+    const startX = -(northWall.length - 1) * spacing / 2
+    positions.push({
+      oeuvre,
+      pos: [startX + i * spacing, 4 + floorHeight, -29.7],
+      rot: [0, 0, 0]
+    })
+  })
+
+  // Mur Ouest (x = -29.7)
+  const westWall = artworks.slice(3, Math.min(5, artworks.length))
+  westWall.forEach((oeuvre, i) => {
+    const spacing = 10
+    const startZ = -(westWall.length - 1) * spacing / 2
+    positions.push({
+      oeuvre,
+      pos: [-29.7, 4 + floorHeight, startZ + i * spacing],
+      rot: [0, Math.PI / 2, 0]
+    })
+  })
+
+  // Mur Est (x = 29.7)
+  const eastWall = artworks.slice(5, Math.min(7, artworks.length))
+  eastWall.forEach((oeuvre, i) => {
+    const spacing = 10
+    const startZ = -(eastWall.length - 1) * spacing / 2
+    positions.push({
+      oeuvre,
+      pos: [29.7, 4 + floorHeight, startZ + i * spacing],
+      rot: [0, -Math.PI / 2, 0]
+    })
+  })
+
+  // Mur Sud (z = 29.7) - pour les étages avec plus d'œuvres
+  if (artworks.length > 7) {
+    const southWall = artworks.slice(7)
+    southWall.forEach((oeuvre, i) => {
+      const spacing = 10
+      const startX = -(southWall.length - 1) * spacing / 2
+      positions.push({
+        oeuvre,
+        pos: [startX + i * spacing, 4 + floorHeight, 29.7],
+        rot: [0, Math.PI, 0]
+      })
+    })
+  }
+
+  return positions
+}
+
 export function Scene({ sensitivity, baseSpeed, fogEnabled, shadowsEnabled }: SceneProps) {
-  const paintingsData = [
-    { 
-      pos: [0, 4, -29.7] as [number, number, number], 
-      rot: [0, 0, 0] as [number, number, number], 
-      title: "Masque Baoulé",
-      artist: "Artisan Baoulé",
-      description: "Masque cérémoniel traditionnel de la culture Baoulé de Côte d'Ivoire, utilisé lors des rituels sacrés.",
-      year: "XIXe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1719169396058-0afb3bf33dd3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwyfHxhZnJpY2FuJTIwbWFzayUyMHdvb2RlbiUyMG1hc2slMjB0cmliYWwlMjBhcnQlMjBjZXJlbW9uaWFsJTIwbWFza3xlbnwwfDF8fHwxNzU5NTk4NTY0fDA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "The Cleveland Museum of Art on Unsplash"
-    },
-    { 
-      pos: [10, 4, -29.7] as [number, number, number], 
-      rot: [0, 0, 0] as [number, number, number], 
-      title: "Trône Ashanti",
-      artist: "Royaume Ashanti",
-      description: "Trône royal du royaume Ashanti, symbole de pouvoir et de prestige.",
-      year: "XVIIIe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1701206886274-f41d3abe0fc6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHw2fHxhZnJpY2FuJTIwdGhyb25lJTIwZ29sZGVuJTIwc3Rvb2wlMjByb3lhbCUyMGZ1cm5pdHVyZSUyMGFzaGFudGl8ZW58MHwyfHx5ZWxsb3d8MTc1OTU5ODU2NHww&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "The Cleveland Museum of Art on Unsplash"
-    },
-    { 
-      pos: [-10, 4, -29.7] as [number, number, number], 
-      rot: [0, 0, 0] as [number, number, number], 
-      title: "Textile Kente",
-      artist: "Tisserands Akan",
-      description: "Tissu royal aux motifs géométriques complexes, symbole de richesse et de statut.",
-      year: "XXe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1730835359985-9ded86e12ccb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwzfHxrZW50ZSUyMGNsb3RoJTIwYWZyaWNhbiUyMHRleHRpbGUlMjB3b3ZlbiUyMGZhYnJpYyUyMGdlb21ldHJpYyUyMHBhdHRlcm5zfGVufDB8Mnx8fDE3NTk1OTg1NjR8MA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Virginia Commonwealth University Libraries on Unsplash"
-    },
-    { 
-      pos: [-29.7, 4, 0] as [number, number, number], 
-      rot: [0, Math.PI/2, 0] as [number, number, number], 
-      title: "Djembé Traditionnel",
-      artist: "Artisan Mandingue",
-      description: "Instrument de percussion sacré utilisé dans les cérémonies et célébrations.",
-      year: "XXe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1708512935636-36a3dba7cfc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwxfHxkamVtYmUlMjBkcnVtJTIwYWZyaWNhbiUyMGRydW0lMjBwZXJjdXNzaW9uJTIwaW5zdHJ1bWVudCUyMHdvb2RlbiUyMGRydW18ZW58MHwxfHx8MTc1OTU5ODU2NHww&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Nana Adwuma on Unsplash"
-    },
-    { 
-      pos: [-29.7, 4, 10] as [number, number, number], 
-      rot: [0, Math.PI/2, 0] as [number, number, number], 
-      title: "Sculpture Dogon",
-      artist: "Peuple Dogon",
-      description: "Sculpture ancestrale représentant les esprits protecteurs du village.",
-      year: "XVe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1700985958097-c75dea592121?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwxfHxkb2dvbiUyMHNjdWxwdHVyZSUyMGFmcmljYW4lMjBzdGF0dWUlMjB3b29kZW4lMjBjYXJ2aW5nJTIwdHJpYmFsJTIwYXJ0fGVufDB8MXx8fDE3NTk1OTg1NjR8MA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Jinish Shah on Unsplash"
-    },
-    { 
-      pos: [-29.7, 4, -10] as [number, number, number], 
-      rot: [0, Math.PI/2, 0] as [number, number, number], 
-      title: "Parure Royale",
-      artist: "Orfèvres Akan",
-      description: "Bijoux et ornements portés par les membres de la cour royale.",
-      year: "XVIIe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1606689518099-4437c5dd3b21?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwzfHxhZnJpY2FuJTIwamV3ZWxyeSUyMGdvbGQlMjBuZWNrbGFjZSUyMHJveWFsJTIwb3JuYW1lbnRzJTIwYmVhZGVkJTIwamV3ZWxyeXxlbnwwfDJ8fHllbGxvd3wxNzU5NTk4NTY0fDA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Shamblen Studios on Unsplash"
-    },
-    { 
-      pos: [29.7, 4, 0] as [number, number, number], 
-      rot: [0, -Math.PI/2, 0] as [number, number, number], 
-      title: "Photographie Moderne",
-      artist: "Seydou Keïta",
-      description: "Portrait photographique capturant l'élégance et la dignité africaine.",
-      year: "1950",
-      imageUrl: "https://images.unsplash.com/photo-1532334836699-88e90d97c8fe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwxfHxhZnJpY2FuJTIwcG9ydHJhaXQlMjB2aW50YWdlJTIwcGhvdG9ncmFwaHklMjBlbGVnYW50JTIwcG9ydHJhaXQlMjBjdWx0dXJhbCUyMHBob3RvZ3JhcGh5fGVufDB8MXx8YmxhY2tfYW5kX3doaXRlfDE3NTk1OTg1Njd8MA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Joshua Oluwagbemiga on Unsplash"
-    },
-    { 
-      pos: [29.7, 4, 10] as [number, number, number], 
-      rot: [0, -Math.PI/2, 0] as [number, number, number], 
-      title: "Poterie Ancienne",
-      artist: "Artisans Nok",
-      description: "Céramique ancienne aux formes élégantes et aux motifs symboliques.",
-      year: "500 av. J.-C.",
-      imageUrl: "https://images.unsplash.com/photo-1654399733889-0492421b115f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwxfHxhZnJpY2FuJTIwcG90dGVyeSUyMHRlcnJhY290dGElMjB2ZXNzZWwlMjBhbmNpZW50JTIwY2VyYW1pY3MlMjBjbGF5JTIwcG90fGVufDB8Mnx8b3JhbmdlfDE3NTk1OTg1Njd8MA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Humberto Arce on Unsplash"
-    },
-    { 
-      pos: [29.7, 4, -10] as [number, number, number], 
-      rot: [0, -Math.PI/2, 0] as [number, number, number], 
-      title: "Art Contemporain",
-      artist: "El Anatsui",
-      description: "Œuvre contemporaine explorant les thèmes de l'identité et de la mondialisation.",
-      year: "2010",
-      imageUrl: "https://images.unsplash.com/photo-1575905430170-00d272865e0a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHw0fHxjb250ZW1wb3JhcnklMjBhZnJpY2FuJTIwYXJ0JTIwbW9kZXJuJTIwcGFpbnRpbmclMjBjb2xvcmZ1bCUyMGFydHdvcmslMjBhYnN0cmFjdCUyMGFydHxlbnwwfDJ8fHwxNzU5NTk4NTY4fDA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Steve Johnson on Unsplash"
-    },
-    { 
-      pos: [0, 4, 29.7] as [number, number, number], 
-      rot: [0, Math.PI, 0] as [number, number, number], 
-      title: "Bijoux Akan",
-      artist: "Orfèvres Akan",
-      description: "Collection de bijoux en or symbolisant le pouvoir et la richesse.",
-      year: "XVIIIe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1606689518099-4437c5dd3b21?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHw0fHxha2FuJTIwZ29sZCUyMGFmcmljYW4lMjBnb2xkJTIwamV3ZWxyeSUyMGdvbGRlbiUyMG9ybmFtZW50cyUyMHRyYWRpdGlvbmFsJTIwamV3ZWxyeXxlbnwwfDJ8fHllbGxvd3wxNzU5NTk4NTY4fDA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Shamblen Studios on Unsplash"
-    },
-    { 
-      pos: [10, 4, 29.7] as [number, number, number], 
-      rot: [0, Math.PI, 0] as [number, number, number], 
-      title: "Statuette Yoruba",
-      artist: "Sculpteurs Yoruba",
-      description: "Statuette représentant une divinité du panthéon Yoruba.",
-      year: "XIXe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1696586904914-075bb15acc40?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHw1fHx5b3J1YmElMjBzdGF0dWUlMjBhZnJpY2FuJTIwZmlndXJpbmUlMjB3b29kZW4lMjBjYXJ2aW5nJTIwdHJpYmFsJTIwc2N1bHB0dXJlfGVufDB8MXx8fDE3NTk1OTg1Njh8MA&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "The Cleveland Museum of Art on Unsplash"
-    },
-    { 
-      pos: [-10, 4, 29.7] as [number, number, number], 
-      rot: [0, Math.PI, 0] as [number, number, number], 
-      title: "Masque Fang",
-      artist: "Peuple Fang",
-      description: "Masque rituel utilisé lors des cérémonies d'initiation.",
-      year: "XIXe siècle",
-      imageUrl: "https://images.unsplash.com/photo-1606715895880-29abb9237bce?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAwNDR8MHwxfHNlYXJjaHwzfHxmYW5nJTIwbWFzayUyMHdoaXRlJTIwdHJpYmFsJTIwbWFzayUyMGdhYm9uJTIwbWFzayUyMGNlcmVtb25pYWwlMjBtYXNrfGVufDB8MXx8d2hpdGV8MTc1OTU5ODU2OHww&ixlib=rb-4.1.0&q=85",
-      imageAttribution: "Girl with red hat on Unsplash"
+  const [currentFloor, setCurrentFloor] = useState(0)
+  const organizedArtworks = organizeArtworksByFloor(oeuvres)
+
+  // Gérer le changement d'étage
+  const handleFloorChange = (newFloor: number) => {
+    setCurrentFloor(newFloor)
+    // Dispatcher un événement pour mettre à jour le HUD
+    window.dispatchEvent(new CustomEvent('floor-changed', { detail: { floor: newFloor } }))
+  }
+
+  // Écouter les événements de changement d'étage depuis le HUD
+  useEffect(() => {
+    const handleFloorChangeEvent = (e: CustomEvent) => {
+      setCurrentFloor(e.detail.floor)
     }
-  ]
+    window.addEventListener('change-floor', handleFloorChangeEvent as EventListener)
+    return () => window.removeEventListener('change-floor', handleFloorChangeEvent as EventListener)
+  }, [])
+
+  // Obtenir les œuvres pour l'étage actuel
+  const currentArtworks = currentFloor === 0 
+    ? organizedArtworks.floor0 
+    : currentFloor === 1 
+    ? organizedArtworks.floor1 
+    : organizedArtworks.floor2
+
+  const artworkPositions = calculateArtworkPositions(currentArtworks, currentFloor)
 
   return (
     <>
       {/* Lumières */}
       <Lighting shadowsEnabled={shadowsEnabled} />
 
-      {/* Environnement */}
-      <Floor />
-      <Walls />
-      <Ceiling />
+      {/* Environnement multi-étages */}
+      <MultiFloor currentFloor={currentFloor} />
 
       {/* Brouillard atmosphérique */}
       {fogEnabled && <fog attach="fog" args={["#1a1a1a", 1, 60]} />}
 
-      {/* Œuvres d'art */}
-      {paintingsData.map((painting, index) => (
+      {/* Escaliers */}
+      {currentFloor < 2 && (
+        <Stairs
+          position={[20, currentFloor * 12, 20]}
+          targetFloor={currentFloor + 1}
+          onUse={() => handleFloorChange(currentFloor + 1)}
+        />
+      )}
+      {currentFloor > 0 && (
+        <Stairs
+          position={[-20, currentFloor * 12, 20]}
+          targetFloor={currentFloor - 1}
+          onUse={() => handleFloorChange(currentFloor - 1)}
+        />
+      )}
+
+      {/* Œuvres d'art de l'étage actuel */}
+      {artworkPositions.map((item, index) => (
         <Painting
-          key={index}
-          position={painting.pos}
-          rotation={painting.rot}
-          title={painting.title}
-          artist={painting.artist}
-          description={painting.description}
-          year={painting.year}
-          imageUrl={painting.imageUrl}
-          imageAttribution={painting.imageAttribution}
+          key={`${currentFloor}-${item.oeuvre.id}`}
+          position={item.pos}
+          rotation={item.rot}
+          title={item.oeuvre.titre}
+          artist={item.oeuvre.artiste}
+          description={item.oeuvre.description}
+          year={item.oeuvre.type}
+          imageUrl={item.oeuvre.image}
+          imageAttribution=""
+          oeuvreId={item.oeuvre.id}
         />
       ))}
 
-      {/* Contrôleur de caméra */}
-      <CameraController sensitivity={sensitivity} baseSpeed={baseSpeed} />
+      {/* Contrôleur de caméra avec ajustement de hauteur */}
+      <CameraController 
+        sensitivity={sensitivity} 
+        baseSpeed={baseSpeed}
+        floorHeight={currentFloor * 12}
+      />
     </>
   )
 }

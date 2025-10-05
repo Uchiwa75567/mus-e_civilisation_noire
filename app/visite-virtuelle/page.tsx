@@ -14,7 +14,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('painting-visited', () => {
     visited += 1
     const el = document.getElementById('visited')
-    if (el) el.textContent = `${visited}/12`
+    if (el) el.textContent = `${visited}/17`
   })
 }
 

@@ -4,6 +4,27 @@ import { Facebook, Instagram, Twitter, Youtube } from "lucide-react"
 export function Footer() {
   return (
     <footer className="bg-muted border-t border-border">
+      {/* Google Maps Section */}
+      <div className="bg-muted border-t border-border py-8">
+        <div className="container mx-auto px-4 lg:px-8">
+          <h3 className="text-xl font-bold mb-4 text-center font-[family-name:var(--font-playfair)]">
+            📍 Nous trouver
+          </h3>
+          <div className="rounded-lg overflow-hidden shadow-lg">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3858.9876543210123!2d-17.4676!3d14.7319!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xec173f1b6f0e0e1%3A0x1234567890abcdef!2sRoute%20de%20l'A%C3%A9roport%2C%20Dakar%2C%20S%C3%A9n%C3%A9gal!5e0!3m2!1sfr!2ssn!4v1234567890123!5m2!1sfr!2ssn"
+              width="100%"
+              height="400"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Localisation du Musée des Civilisations Noires"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About */}

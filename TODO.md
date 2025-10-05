@@ -48,7 +48,14 @@
 - [x] Ensure audio player displays on oeuvre detail pages
 - [x] Add 17 unique audio guide files for each artwork
 
-## 8. Testing and Validation
+## 8. Multi-language Audio Guides
+- [x] Modify Oeuvre type to support audioUrls object with fr, en, wo languages
+- [x] Update all oeuvres data with multi-language audio URLs
+- [x] Add language selector UI in oeuvre detail page
+- [x] Create 51 audio files (17 oeuvres × 3 langues)
+- [x] Implement dynamic audio player switching based on selected language
+
+## 9. Testing and Validation
 - [x] Test all new oeuvres pages
 - [x] Verify QR code links work
 - [x] Check stats accuracy

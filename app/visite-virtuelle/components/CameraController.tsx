@@ -7,9 +7,10 @@ import * as THREE from "three"
 interface CameraControllerProps {
   sensitivity: number
   baseSpeed: number
+  floorHeight?: number
 }
 
-export function CameraController({ sensitivity, baseSpeed }: CameraControllerProps) {
+export function CameraController({ sensitivity, baseSpeed, floorHeight = 0 }: CameraControllerProps) {
   const { camera, gl } = useThree()
   const [moveForward, setMoveForward] = useState(false)
   const [moveBackward, setMoveBackward] = useState(false)
@@ -160,7 +161,7 @@ export function CameraController({ sensitivity, baseSpeed }: CameraControllerPro
     // Limites de la salle (collision basique)
     camera.position.x = Math.max(-28, Math.min(28, camera.position.x))
     camera.position.z = Math.max(-28, Math.min(28, camera.position.z))
-    camera.position.y = 1.6
+    camera.position.y = 1.6 + floorHeight
 
     // Mise à jour HUD
     try {
@@ -176,17 +177,22 @@ export function CameraController({ sensitivity, baseSpeed }: CameraControllerPro
     }
   })
 
-  // Reset camera
+  // Reset camera and handle floor changes
   useEffect(() => {
     const onReset = () => {
-      camera.position.set(0, 1.6, 10)
+      camera.position.set(0, 1.6 + floorHeight, 10)
       camera.rotation.set(0, 0, 0)
       velocity.current.set(0, 0, 0)
     }
 
     window.addEventListener('reset-camera', onReset as EventListener)
     return () => window.removeEventListener('reset-camera', onReset as EventListener)
-  }, [camera])
+  }, [camera, floorHeight])
+
+  // Adjust camera height when floor changes
+  useEffect(() => {
+    camera.position.y = 1.6 + floorHeight
+  }, [floorHeight, camera])
 
   return null
 }

@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-
-// Simulated valid reservations storage (in production, this would be a database)
-const validReservations = new Set<string>()
-
-// Add some sample valid reservations for testing
-validReservations.add("MCN-1735923456789-ABC123")
-validReservations.add("MCN-1735923456790-DEF456")
+import { hasReservation, getReservation } from "@/lib/reservations-store"
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,12 +22,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if reservation exists and is valid
-    if (!validReservations.has(reservationData.id)) {
+    // Check if reservation exists in the store
+    if (!hasReservation(reservationData.id)) {
       return NextResponse.json(
         {
           valid: false,
           message: "Réservation non trouvée ou expirée"
+        },
+        { status: 200 }
+      )
+    }
+
+    // Get full reservation details
+    const reservation = getReservation(reservationData.id)
+    if (!reservation) {
+      return NextResponse.json(
+        {
+          valid: false,
+          message: "Erreur lors de la récupération de la réservation"
         },
         { status: 200 }
       )
@@ -108,14 +114,14 @@ export async function POST(request: NextRequest) {
     // Valid entry
     return NextResponse.json({
       valid: true,
-      message: "Accès autorisé",
+      message: "Accès autorisé - Bienvenue au Musée des Civilisations Noires",
       reservation: {
-        id: reservationData.id,
-        nom: reservationData.nom,
-        prenom: reservationData.prenom,
-        type: reservationData.type,
-        quantite: reservationData.quantite,
-        heure: reservationData.heure
+        id: reservation.id,
+        nom: reservation.nom,
+        prenom: reservation.prenom,
+        type: reservation.type,
+        quantite: reservation.quantite,
+        heure: reservation.heure
       }
     })
 

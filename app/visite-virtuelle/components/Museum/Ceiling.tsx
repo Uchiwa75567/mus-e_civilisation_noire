@@ -3,7 +3,11 @@
 import { useMemo } from "react"
 import * as THREE from "three"
 
-export function Ceiling() {
+interface CeilingProps {
+  yPosition?: number
+}
+
+export function Ceiling({ yPosition = 0 }: CeilingProps) {
   // Texture du plafond
   const ceilingTexture = useMemo(() => {
     if (typeof document === 'undefined') return null
@@ -39,7 +43,7 @@ export function Ceiling() {
   return (
     <>
       {/* Plafond principal */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 12, 0]} receiveShadow>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 12 + yPosition, 0]} receiveShadow>
         <planeGeometry args={[60, 60]} />
         <meshStandardMaterial 
           map={ceilingTexture}
@@ -49,7 +53,7 @@ export function Ceiling() {
       </mesh>
 
       {/* Moulures dorées */}
-      <mesh position={[0, 11.8, 0]}>
+      <mesh position={[0, 11.8 + yPosition, 0]}>
         <torusGeometry args={[15, 0.15, 16, 100]} />
         <meshStandardMaterial color="#D4AF37" metalness={0.8} roughness={0.2} />
       </mesh>
